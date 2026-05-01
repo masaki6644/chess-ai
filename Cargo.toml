@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "crates/core",
+    "crates/pgn",
+    "crates/pipeline",
+    "crates/experiment",
+    "crates/dataset",
+    "crates/trace",
+    "crates/io",
+    "apps/rust/run_experiment",
+]

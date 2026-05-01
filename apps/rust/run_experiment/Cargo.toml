@@ -1,0 +1,9 @@
+[package]
+name = "run_experiment"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+experiment = { path = "../../../crates/experiment" }
+pipeline   = { path = "../../../crates/pipeline" } 
+trace = { path = "../../../crates/trace" }  

@@ -1,0 +1,28 @@
+# Rust
+/target
+**/target
+Cargo.lock
+
+# data（全部無視）
+/data/pgn/
+/data/raw/
+/data/processed/
+/data/tmp/
+
+# engine（外部バイナリ）
+/engine/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+
+# Python（もし使うなら）
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
