@@ -4,8 +4,9 @@ use std::io::BufReader;
 use experiment::runner::run;
 use experiment::config::ExperimentConfig;
 
-use pipeline::filter::NoFilter;
-use pipeline::score::DummyScorer;
+use pipeline::filter::{StrongGameFilter, StrongGameFilterConfig};
+use pipeline::feature::{SimpleFeatureBuilder, SimpleFeatures};
+use pipeline::score::QuickScorer;
 use pipeline::select::NoSelect;
 
 use trace::collector::TraceCollector; // ← 追加
@@ -14,12 +15,22 @@ fn main() {
     let file = File::open("data/pgn/part_000.pgn").unwrap();
     let reader = BufReader::new(file);
 
-    let filter = NoFilter;
-    let scorer = DummyScorer;
+    let filter = StrongGameFilter {
+        config: StrongGameFilterConfig {
+            min_len: 15,
+            max_len: 120,
+            min_elo: 1300,
+            max_elo: 2400,
+        },
+    };
+    
+    let feature_builder = SimpleFeatureBuilder;
+    let scorer = QuickScorer;
     let selector = NoSelect;
 
-    let config = ExperimentConfig {
+    let config: ExperimentConfig<SimpleFeatures> = ExperimentConfig {
         filter: &filter,
+        feature_builder: &feature_builder,
         scorer: &scorer,
         selector: &selector,
     };

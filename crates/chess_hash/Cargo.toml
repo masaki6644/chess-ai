@@ -1,9 +1,8 @@
 [package]
-name = "pipeline"
+name = "chess_hash"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-core = { path = "../core" }
 shakmaty = "0.26"
 rand = "0.8"

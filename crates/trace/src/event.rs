@@ -1,14 +1,16 @@
+use core::Game;
+
+use pipeline::filter::FilterReason;
+
 pub enum TraceEvent {
-    // ===== Game =====
     GameSeen,
     GameAccepted,
-    GameFiltered,
+    
+    GameFiltered { reason: FilterReason,game:Game },
 
-    // ===== Pipeline =====
-    Expanded { positions: usize },
-    Scored { positions: usize },
-    Selected { positions: usize },
+    Expanded { count: usize },
+    Scored { count: usize },
+    Selected { count: usize },
 
-    // ===== Error =====
     Error { stage: &'static str },
 }

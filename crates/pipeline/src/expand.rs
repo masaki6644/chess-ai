@@ -1,12 +1,24 @@
 use core::{Game, Position};
-use shakmaty::Position as _; // ← これが正解（traitだけ読み込む）
+use shakmaty::Position as _;
 
-pub fn expand(game: &Game) -> Vec<Position> {
+use crate::types::PositionSample;
+
+pub fn expand(game: &Game) -> Vec<PositionSample> {
     let mut pos = Position::default();
     let mut out = Vec::with_capacity(game.moves.len());
 
-    for mv in &game.moves {
-        out.push(pos.clone());
+    let total = game.moves.len();
+
+    for (i, mv) in game.moves.iter().enumerate() {
+
+        // 現在の局面をサンプルとして保存
+        out.push(PositionSample {
+            pos: pos.clone(),
+            ply: i,
+            total_plies: total,
+        });
+
+        // 次の局面へ進める
         pos.play_unchecked(mv);
     }
 

@@ -8,50 +8,66 @@ use trace::event::TraceEvent;
 
 use crate::config::ExperimentConfig;
 
-pub fn run<R: BufRead>(
+pub fn run<R, F>(
     reader: R,
-    config: ExperimentConfig,
+    config: ExperimentConfig<F>,
     trace: &mut TraceCollector,
-) {
+)
+where
+    R: BufRead,
+    F: Clone,
+{
     let games = parse_pgn(reader);
 
     for game in games {
 
-        // 👇 全ゲーム観測
+        // ===== Game =====
         trace.record(TraceEvent::GameSeen);
 
         // ===== filter =====
-        if !config.filter.accept(&game) {
-            trace.record(TraceEvent::GameFiltered);
-            continue;
+        match config.filter.check(&game) {
+            Ok(_) => {
+                trace.record(TraceEvent::GameAccepted);
+            }
+            Err(reason) => {
+                trace.record(TraceEvent::GameFiltered { reason,game });
+                continue;
+            }
         }
 
-        trace.record(TraceEvent::GameAccepted);
-
         // ===== expand =====
-        let positions = expand(&game);
+        let samples = expand(&game);
         trace.record(TraceEvent::Expanded {
-            positions: positions.len(),
+            count: samples.len(),
         });
 
-        // ===== score =====
-        let scored: Vec<_> = positions
+        // ===== feature ===== ★追加
+        let featured: Vec<_> = samples
             .into_iter()
-            .map(|p| config.scorer.score(p))
+            .map(|s| {
+                let f = config.feature_builder.build(&s);
+                (s, f)
+            })
+            .collect();
+
+        // ===== score ===== ★変更
+        let scored: Vec<_> = featured
+            .into_iter()
+            .map(|(s, f)| config.scorer.score(s, f))
             .collect();
 
         trace.record(TraceEvent::Scored {
-            positions: scored.len(),
+            count: scored.len(),
         });
 
         // ===== select =====
         let selected = config.selector.select(scored);
 
         trace.record(TraceEvent::Selected {
-            positions: selected.len(),
+            count: selected.len(),
         });
 
-        // 👇 デバッグ用（残してOK）
-        println!("selected: {}", selected.len());
+        // debug
+        //println!("selected: {}", selected.len());
     }
 }

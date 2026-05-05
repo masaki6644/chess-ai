@@ -7,5 +7,7 @@ members = [
     "crates/dataset",
     "crates/trace",
     "crates/io",
+    "crates/chess_hash",
+    "crates/chess_tt",
     "apps/rust/run_experiment",
 ]
