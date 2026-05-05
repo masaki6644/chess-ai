@@ -1,11 +1,24 @@
+use std::sync::Arc;
+
 use pipeline::filter::GameFilter;
 use pipeline::feature::FeatureBuilder;
 use pipeline::score::Scorer;
 use pipeline::select::Selector;
 
-pub struct ExperimentConfig<'a, F> {
-    pub filter: &'a dyn GameFilter,
-    pub feature_builder: &'a dyn FeatureBuilder<Output = F>,
-    pub scorer: &'a dyn Scorer<F>,
-    pub selector: &'a dyn Selector,
+pub struct ExperimentConfig<F> {
+    pub filter: Arc<dyn GameFilter + Send + Sync>,
+    pub feature_builder: Arc<dyn FeatureBuilder<Output = F> + Send + Sync>,
+    pub scorer: Arc<dyn Scorer<F> + Send + Sync>,
+    pub selector: Arc<dyn Selector + Send + Sync>,
+}
+
+impl<F> Clone for ExperimentConfig<F> {
+    fn clone(&self) -> Self {
+        Self {
+            filter: self.filter.clone(),
+            feature_builder: self.feature_builder.clone(),
+            scorer: self.scorer.clone(),
+            selector: self.selector.clone(),
+        }
+    }
 }

@@ -32,8 +32,8 @@ struct Collector {
     invalid: bool,
 
     result: Option<i8>,
-    white_elo: Option<i32>,
-    black_elo: Option<i32>,
+    white_elo: Option<u32>,
+    black_elo: Option<u32>,
 }
 
 impl Visitor for Collector {
@@ -65,10 +65,10 @@ impl Visitor for Collector {
                 };
             }
             b"WhiteElo" => {
-                self.white_elo = v.parse::<i32>().ok();
+                self.white_elo = v.parse::<u32>().ok();
             }
             b"BlackElo" => {
-                self.black_elo = v.parse::<i32>().ok();
+                self.black_elo = v.parse::<u32>().ok();
             }
             _ => {}
         }

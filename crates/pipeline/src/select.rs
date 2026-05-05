@@ -4,7 +4,7 @@ use rand::prelude::*;
 // =========================
 // trait
 // =========================
-pub trait Selector {
+pub trait Selector: Send + Sync  {
     fn select(&self, input: Vec<ScoredPosition>) -> Vec<ScoredPosition>;
 }
 

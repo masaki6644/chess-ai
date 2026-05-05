@@ -7,3 +7,5 @@ edition = "2021"
 experiment = { path = "../../../crates/experiment" }
 pipeline   = { path = "../../../crates/pipeline" } 
 trace = { path = "../../../crates/trace" }  
+
+crossbeam = "0.8"

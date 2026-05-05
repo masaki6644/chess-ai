@@ -7,3 +7,5 @@ edition = "2021"
 pgn = { path = "../pgn" }
 pipeline = { path = "../pipeline" }
 trace = { path = "../trace" }  
+
+crossbeam = "0.8"

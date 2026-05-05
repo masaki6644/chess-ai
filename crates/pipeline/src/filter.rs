@@ -15,7 +15,7 @@ pub enum FilterReason {
 // =========================
 // trait（Resultベース）
 // =========================
-pub trait GameFilter {
+pub trait GameFilter: Send + Sync {
     fn check(&self, game: &Game) -> Result<(), FilterReason>;
 }
 
@@ -37,8 +37,8 @@ impl GameFilter for NoFilter {
 pub struct StrongGameFilterConfig {
     pub min_len: usize,
     pub max_len: usize,
-    pub min_elo: i32,
-    pub max_elo: i32,
+    pub min_elo: u32,
+    pub max_elo: u32,
 }
 
 // =========================

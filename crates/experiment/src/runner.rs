@@ -1,17 +1,19 @@
 use std::io::BufRead;
+use crossbeam::channel::Sender;
 
 use pgn::parser::parse_pgn;
 use pipeline::expand::expand;
 
-use trace::collector::TraceCollector;
 use trace::event::TraceEvent;
+use trace::meta::GameMeta;
 
 use crate::config::ExperimentConfig;
 
 pub fn run<R, F>(
     reader: R,
     config: ExperimentConfig<F>,
-    trace: &mut TraceCollector,
+    sender: Sender<TraceEvent>,
+    file_id: u64, // ★ 追加
 )
 where
     R: BufRead,
@@ -19,29 +21,46 @@ where
 {
     let games = parse_pgn(reader);
 
-    for game in games {
+    for (i, game) in games.into_iter().enumerate() {
+        // ★ 一意ID生成
+        let game_id = (file_id << 32) | (i as u64);
+
+        let meta = GameMeta {
+            game_id,
+            moves: game.moves.len(),
+            white_elo: game.white_elo,
+            black_elo: game.black_elo,
+        };
 
         // ===== Game =====
-        trace.record(TraceEvent::GameSeen);
+        sender
+            .send(TraceEvent::GameSeen)
+            .expect("trace send failed");
 
         // ===== filter =====
         match config.filter.check(&game) {
             Ok(_) => {
-                trace.record(TraceEvent::GameAccepted);
+                sender
+                    .send(TraceEvent::GameAccepted)
+                    .expect("trace send failed");
             }
             Err(reason) => {
-                trace.record(TraceEvent::GameFiltered { reason,game });
+                sender
+                    .send(TraceEvent::GameFiltered { reason, meta })
+                    .expect("trace send failed");
                 continue;
             }
         }
 
         // ===== expand =====
         let samples = expand(&game);
-        trace.record(TraceEvent::Expanded {
-            count: samples.len(),
-        });
+        sender
+            .send(TraceEvent::Expanded {
+                count: samples.len(),
+            })
+            .expect("trace send failed");
 
-        // ===== feature ===== ★追加
+        // ===== feature =====
         let featured: Vec<_> = samples
             .into_iter()
             .map(|s| {
@@ -50,24 +69,28 @@ where
             })
             .collect();
 
-        // ===== score ===== ★変更
+        // ===== score =====
         let scored: Vec<_> = featured
             .into_iter()
             .map(|(s, f)| config.scorer.score(s, f))
             .collect();
 
-        trace.record(TraceEvent::Scored {
-            count: scored.len(),
-        });
+        sender
+            .send(TraceEvent::Scored {
+                count: scored.len(),
+            })
+            .expect("trace send failed");
 
         // ===== select =====
         let selected = config.selector.select(scored);
 
-        trace.record(TraceEvent::Selected {
-            count: selected.len(),
-        });
-
-        // debug
-        //println!("selected: {}", selected.len());
+        sender
+            .send(TraceEvent::Selected {
+                count: selected.len(),
+            })
+            .expect("trace send failed");
     }
+
+    // ★ 明示drop（スレッド終了検知）
+    drop(sender);
 }

@@ -5,7 +5,7 @@ use crate::types::PositionSample;
 // =========================
 // Feature trait（差し替え可能な本体）
 // =========================
-pub trait FeatureBuilder {
+pub trait FeatureBuilder: Send + Sync  {
     type Output;
 
     fn build(&self, sample: &PositionSample) -> Self::Output;

@@ -12,7 +12,7 @@ pub struct ScoredPosition {
 // =========================
 // trait（Feature前提）
 // =========================
-pub trait Scorer<F> {
+pub trait Scorer<F>: Send + Sync  {
     fn score(&self, sample: PositionSample, features: F) -> ScoredPosition;
 }
 
