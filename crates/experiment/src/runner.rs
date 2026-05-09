@@ -13,15 +13,19 @@ use crate::config::ExperimentConfig;
 
 pub fn run<R, F>(
     reader: R,
+
     config: ExperimentConfig<F>,
+
     sender: Sender<TraceEvent>,
 
     file_id: u64,
     worker_id: usize,
+
     path: String,
 )
 where
     R: BufRead,
+
     F: Clone,
 {
     // =========================
@@ -35,9 +39,16 @@ where
         })
         .expect("trace send failed");
 
-    let games = parse_pgn(reader);
+    // =========================
+    // streaming parse
+    // =========================
+    let mut game_index = 0usize;
 
-    for (i, game) in games.into_iter().enumerate() {
+    parse_pgn(reader, |game| {
+
+        let i = game_index;
+
+        game_index += 1;
 
         // =========================
         // unique game id
@@ -47,7 +58,9 @@ where
 
         let meta = GameMeta {
             game_id,
+
             moves: game.moves.len(),
+
             white_elo: game.white_elo,
             black_elo: game.black_elo,
         };
@@ -65,12 +78,18 @@ where
         match config.filter.check(&game) {
 
             Ok(_) => {
+
                 sender
-                    .send(TraceEvent::GameAccepted)
-                    .expect("trace send failed");
+                    .send(
+                        TraceEvent::GameAccepted
+                    )
+                    .expect(
+                        "trace send failed"
+                    );
             }
 
             Err(reason) => {
+
                 sender
                     .send(
                         TraceEvent::GameFiltered {
@@ -78,9 +97,11 @@ where
                             meta,
                         }
                     )
-                    .expect("trace send failed");
+                    .expect(
+                        "trace send failed"
+                    );
 
-                continue;
+                return;
             }
         }
 
@@ -98,25 +119,33 @@ where
         // =========================
         // feature
         // =========================
-        let featured: Vec<_> = samples
-            .into_iter()
-            .map(|s| {
-                let f =
-                    config.feature_builder.build(&s);
+        let featured: Vec<_> =
+            samples
+                .into_iter()
+                .map(|s| {
 
-                (s, f)
-            })
-            .collect();
+                    let f =
+                        config
+                            .feature_builder
+                            .build(&s);
+
+                    (s, f)
+                })
+                .collect();
 
         // =========================
         // score
         // =========================
-        let scored: Vec<_> = featured
-            .into_iter()
-            .map(|(s, f)| {
-                config.scorer.score(s, f)
-            })
-            .collect();
+        let scored: Vec<_> =
+            featured
+                .into_iter()
+                .map(|(s, f)| {
+
+                    config
+                        .scorer
+                        .score(s, f)
+                })
+                .collect();
 
         sender
             .send(TraceEvent::Scored {
@@ -128,14 +157,19 @@ where
         // select
         // =========================
         let selected =
-            config.selector.select(scored);
+            config
+                .selector
+                .select(scored);
 
         sender
             .send(TraceEvent::Selected {
                 count: selected.len(),
             })
             .expect("trace send failed");
-    }
+
+        // NOTE:
+        // selected dropped here
+    });
 
     // =========================
     // file finished

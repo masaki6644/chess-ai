@@ -271,16 +271,16 @@ fn main() {
     bus_handle.join().unwrap();
 
     // =========================
-    // analytics shutdown
+    // ui shutdown
     // =========================
-    analytics_handle
+    ui_handle
         .join()
         .unwrap();
 
     // =========================
-    // ui shutdown
+    // analytics shutdown
     // =========================
-    ui_handle
+    analytics_handle
         .join()
         .unwrap();
 }
