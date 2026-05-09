@@ -3,6 +3,9 @@ use pipeline::filter::FilterReason;
 
 #[derive(Debug, Clone)]
 pub enum TraceEvent {
+    // =========================
+    // game lifecycle
+    // =========================
     GameSeen,
     GameAccepted,
 
@@ -11,10 +14,16 @@ pub enum TraceEvent {
         meta: GameMeta,
     },
 
+    // =========================
+    // pipeline
+    // =========================
     Expanded { count: usize },
     Scored { count: usize },
     Selected { count: usize },
 
+    // =========================
+    // error
+    // =========================
     Error {
         stage: &'static str,
     },

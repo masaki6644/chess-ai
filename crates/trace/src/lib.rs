@@ -1,5 +1,4 @@
+pub mod bus;
 pub mod event;
 pub mod meta;
-pub mod collector;
-pub mod stats;
-pub mod summary;
+pub mod analytics;

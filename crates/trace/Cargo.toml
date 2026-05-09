@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 pipeline = { path = "../pipeline" }
 core = { path = "../core" }
+
+ratatui = "0.26"
+crossterm = "0.27"
+crossbeam-channel = "0.5"
