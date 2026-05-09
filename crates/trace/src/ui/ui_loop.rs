@@ -5,6 +5,21 @@ use crossbeam_channel::{
     RecvTimeoutError,
 };
 
+use crossterm::{
+    execute,
+    terminal::{
+        disable_raw_mode,
+        enable_raw_mode,
+        EnterAlternateScreen,
+        LeaveAlternateScreen,
+    },
+};
+
+use ratatui::{
+    backend::CrosstermBackend,
+    Terminal,
+};
+
 use crate::event::TraceEvent;
 
 use crate::ui::app::AppState;
@@ -16,26 +31,52 @@ pub fn run_ui_loop(
     num_workers: usize,
 ) {
 
+    // =========================
+    // stdout
+    // =========================
+    let mut stdout =
+        std::io::stdout();
+
+    // =========================
+    // terminal init
+    // =========================
+    enable_raw_mode().unwrap();
+
+    execute!(
+        stdout,
+        EnterAlternateScreen
+    )
+    .unwrap();
+
+    let backend =
+        CrosstermBackend::new(stdout);
+
+    let mut terminal =
+        Terminal::new(backend)
+            .unwrap();
+
+    // =========================
+    // state
+    // =========================
     let mut state =
         AppState::new(
             total_files,
             num_workers,
         );
 
+    // =========================
+    // loop
+    // =========================
     loop {
 
         match rx.recv_timeout(
             Duration::from_millis(16),
         ) {
 
-            // =========================
-            // received event
-            // =========================
             Ok(event) => {
 
                 state.ingest(event);
 
-                // drain buffered events
                 while let Ok(event) =
                     rx.try_recv()
                 {
@@ -43,16 +84,10 @@ pub fn run_ui_loop(
                 }
             }
 
-            // =========================
-            // periodic wakeup
-            // =========================
             Err(
                 RecvTimeoutError::Timeout
             ) => {}
 
-            // =========================
-            // shutdown
-            // =========================
             Err(
                 RecvTimeoutError::Disconnected
             ) => {
@@ -60,19 +95,25 @@ pub fn run_ui_loop(
             }
         }
 
-        // =========================
-        // redraw only if changed
-        // =========================
-        if state.dirty {
-
-            render(&state);
-
-            state.dirty = false;
-        }
+        terminal
+            .draw(|frame| {
+                render(frame, &state);
+            })
+            .unwrap();
     }
 
     // =========================
-    // final render
+    // restore terminal
     // =========================
-    render(&state);
+    disable_raw_mode().unwrap();
+
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen
+    )
+    .unwrap();
+
+    terminal
+        .show_cursor()
+        .unwrap();
 }

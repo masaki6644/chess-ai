@@ -1,70 +1,103 @@
-use std::io::{
-    stdout,
-    Write,
+use ratatui::{
+    Frame,
+    layout::{
+        Constraint,
+        Direction,
+        Layout,
+    },
+    widgets::{
+        Block,
+        Borders,
+        Paragraph,
+    },
 };
 
 use crate::ui::app::AppState;
 
-pub fn render(state: &AppState) {
+pub fn render(
+    frame: &mut Frame,
+    state: &AppState,
+) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3),
+            Constraint::Min(5),
+            Constraint::Length(3),
+        ])
+        .split(frame.area());
 
-    // =========================
-    // clear terminal
-    // =========================
-    print!("\x1B[2J\x1B[1;1H");
-
-    // =========================
     // progress
-    // =========================
-    println!(
-        "Progress: {} / {} files",
+    let progress = Paragraph::new(format!(
+        "Progress: {} / {}",
         state.completed_files,
         state.total_files,
+    ))
+    .block(
+        Block::default()
+            .title("Progress")
+            .borders(Borders::ALL),
     );
 
-    println!();
+    frame.render_widget(
+        progress,
+        chunks[0],
+    );
 
-    // =========================
     // workers
-    // =========================
-    for (i, worker)
-        in state.workers.iter().enumerate()
-    {
-        match &worker.current_file {
+    let workers = state
+        .workers
+        .iter()
+        .enumerate()
+        .map(|(i, w)| {
+            match &w.current_file {
 
-            Some(path) => {
-                println!(
-                    "Runner{}: {}",
-                    i,
-                    path,
-                );
+                Some(path) => {
+                    format!(
+                        "Runner{}: {}",
+                        i,
+                        path,
+                    )
+                }
+
+                None => {
+                    format!(
+                        "Runner{}: idle",
+                        i,
+                    )
+                }
             }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
 
-            None => {
-                println!(
-                    "Runner{}: idle",
-                    i,
-                );
-            }
-        }
-    }
+    let workers_widget =
+        Paragraph::new(workers)
+        .block(
+            Block::default()
+                .title("Workers")
+                .borders(Borders::ALL),
+        );
 
-    println!();
+    frame.render_widget(
+        workers_widget,
+        chunks[1],
+    );
 
-    // =========================
-    // counters
-    // =========================
-    println!(
-        "games: {}",
+    // stats
+    let stats = Paragraph::new(format!(
+        "games: {}\nerrors: {}",
         state.games_seen,
-    );
-
-    println!(
-        "errors: {}",
         state.errors,
+    ))
+    .block(
+        Block::default()
+            .title("Stats")
+            .borders(Borders::ALL),
     );
 
-    // =========================
-    // force redraw
-    // =========================
-    stdout().flush().unwrap();
+    frame.render_widget(
+        stats,
+        chunks[2],
+    );
 }

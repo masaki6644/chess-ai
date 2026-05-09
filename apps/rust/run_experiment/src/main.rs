@@ -74,11 +74,6 @@ fn main() {
     let total_files =
         files.len();
 
-    println!(
-        "found {} files",
-        total_files,
-    );
-
     // =========================
     // config
     // =========================
@@ -119,11 +114,6 @@ fn main() {
 
     let num_workers =
         base.saturating_sub(2).max(1);
-
-    println!(
-        "workers: {}",
-        num_workers,
-    );
 
     // =========================
     // channels
@@ -182,9 +172,7 @@ fn main() {
             analytics.ingest(event);
         }
 
-        SummaryPrinter::print(
-            &analytics,
-        );
+        analytics
     });
 
     // =========================
@@ -280,7 +268,10 @@ fn main() {
     // =========================
     // analytics shutdown
     // =========================
-    analytics_handle
-        .join()
-        .unwrap();
+    let analytics =
+        analytics_handle
+            .join()
+            .unwrap();
+
+    SummaryPrinter::print(&analytics);
 }
