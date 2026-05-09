@@ -27,4 +27,18 @@ pub enum TraceEvent {
     Error {
         stage: &'static str,
     },
+
+    // =========================
+    // worker/file
+    // =========================
+    FileStarted {
+        worker_id: usize,
+        file_id: u64,
+        path: String,
+    },
+
+    FileFinished {
+        worker_id: usize,
+        file_id: u64,
+    },
 }

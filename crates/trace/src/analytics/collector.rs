@@ -82,6 +82,8 @@ impl TraceAnalytics {
             TraceEvent::Error { .. } => {
                 self.errors += 1;
             }
+
+            _ => {}
         }
     }
 }
