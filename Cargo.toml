@@ -9,5 +9,6 @@ members = [
     "crates/io",
     "crates/chess_hash",
     "crates/chess_tt",
+    "crates/engine",
     "apps/rust/run_experiment",
 ]

@@ -110,9 +110,16 @@ where
         // =========================
         let samples = expand(&game);
 
+        let total_plies =
+            samples
+            .first()
+            .map(|s| s.total_plies)
+            .unwrap_or(0);
+
         sender
             .send(TraceEvent::Expanded {
                 count: samples.len(),
+                total_plies,
             })
             .expect("trace send failed");
 
@@ -147,9 +154,16 @@ where
                 })
                 .collect();
 
+        let scores =
+            scored
+                .iter()
+                .map(|s| s.score)
+                .collect();
+
         sender
             .send(TraceEvent::Scored {
                 count: scored.len(),
+                scores
             })
             .expect("trace send failed");
 
@@ -161,11 +175,27 @@ where
                 .selector
                 .select(scored);
 
+        let selected_scores =
+            selected
+                .iter()
+                .map(|s| s.score)
+                .collect();
+
         sender
             .send(TraceEvent::Selected {
                 count: selected.len(),
+                scores: selected_scores,
             })
             .expect("trace send failed");
+
+        // =========================
+        // label
+        // =========================
+        let labeled =
+            config
+                .labeler
+                .label(selected);
+
 
         // NOTE:
         // selected dropped here

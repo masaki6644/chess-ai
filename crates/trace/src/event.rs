@@ -17,9 +17,18 @@ pub enum TraceEvent {
     // =========================
     // pipeline
     // =========================
-    Expanded { count: usize },
-    Scored { count: usize },
-    Selected { count: usize },
+    Expanded {
+        count: usize,
+        total_plies: usize,
+    },
+    Scored { 
+        count: usize,
+        scores: Vec<f32>,
+    },
+    Selected { 
+        count: usize,
+        scores: Vec<f32>,
+    },
 
     // =========================
     // error

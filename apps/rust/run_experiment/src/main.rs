@@ -19,7 +19,9 @@ use pipeline::filter::{
 };
 
 use pipeline::score::QuickScorer;
-use pipeline::select::NoSelect;
+use pipeline::select::SoftSelector;
+
+use pipeline::label::DummyLabeler;
 
 use trace::analytics::collector::TraceAnalytics;
 use trace::analytics::summary::SummaryPrinter;
@@ -101,7 +103,10 @@ fn main() {
             Arc::new(QuickScorer),
 
         selector:
-            Arc::new(NoSelect),
+            Arc::new(SoftSelector{temperature:0.03, k : 16 }),
+        
+        labeler:
+            Arc::new(DummyLabeler),
     };
 
     // =========================
