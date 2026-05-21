@@ -1,7 +1,7 @@
 use core::{Game, Position};
 use shakmaty::Position as _;
 
-use crate::types::PositionSample;
+use crate::candidate::types::PositionSample;
 
 pub fn expand(game: &Game) -> Vec<PositionSample> {
     let mut pos = Position::default();

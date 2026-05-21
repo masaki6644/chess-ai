@@ -1,5 +1,5 @@
 use crate::meta::GameMeta;
-use pipeline::filter::FilterReason;
+use pipeline::candidate::filter::FilterReason;
 
 #[derive(Debug, Clone)]
 pub enum TraceEvent {

@@ -1,6 +1,6 @@
 use shakmaty::Position as _;
 
-use crate::types::PositionSample;
+use crate::candidate::types::PositionSample;
 
 // =========================
 // Feature trait（差し替え可能な本体）

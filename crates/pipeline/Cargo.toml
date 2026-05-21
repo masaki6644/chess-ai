@@ -7,3 +7,4 @@ edition = "2021"
 core = { path = "../core" }
 shakmaty = "0.26"
 rand = "0.8"
+crossbeam = "0.8"

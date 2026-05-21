@@ -4,7 +4,16 @@ use crossbeam::channel::Sender;
 
 use pgn::parser::parse_pgn;
 
-use pipeline::expand::expand;
+use pipeline::candidate::expand::expand;
+
+use pipeline::types::{
+    CandidateBatch,
+    CandidatePosition,
+};
+
+use shakmaty::fen::Fen;
+use shakmaty::Position;
+use shakmaty::EnPassantMode;
 
 use trace::event::TraceEvent;
 use trace::meta::GameMeta;
@@ -18,6 +27,9 @@ pub fn run<R, F>(
 
     sender: Sender<TraceEvent>,
 
+    candidate_tx:
+        Sender<CandidateBatch<F>>,
+
     file_id: u64,
     worker_id: usize,
 
@@ -26,7 +38,7 @@ pub fn run<R, F>(
 where
     R: BufRead,
 
-    F: Clone,
+    F: Clone + Send + 'static,
 {
     // =========================
     // file started
@@ -112,9 +124,9 @@ where
 
         let total_plies =
             samples
-            .first()
-            .map(|s| s.total_plies)
-            .unwrap_or(0);
+                .first()
+                .map(|s| s.total_plies)
+                .unwrap_or(0);
 
         sender
             .send(TraceEvent::Expanded {
@@ -163,7 +175,7 @@ where
         sender
             .send(TraceEvent::Scored {
                 count: scored.len(),
-                scores
+                scores,
             })
             .expect("trace send failed");
 
@@ -189,13 +201,65 @@ where
             .expect("trace send failed");
 
         // =========================
-        // label
+        // candidate batch
         // =========================
-        let labeled =
-            config
-                .labeler
-                .label(selected);
+        let positions =
+            selected
+                .into_iter()
+                .map(|s| {
 
+                    let stm =
+                        s.sample
+                            .pos
+                            .turn();
+
+                    CandidatePosition {
+
+                        // -----------------
+                        // identity
+                        // -----------------
+                        game_id,
+
+                        ply:
+                            s.sample.ply as u16,
+
+                        // -----------------
+                        // position
+                        // -----------------
+                        fen:
+                            Fen::from_position(
+                                s.sample.pos,
+                                EnPassantMode::Legal,
+                            )
+                                .to_string(),
+
+                        stm,
+
+                        // -----------------
+                        // features
+                        // -----------------
+                        features:
+                            s.features,
+
+                        // -----------------
+                        // candidate score
+                        // -----------------
+                        score:
+                            s.score,
+                    }
+                })
+                .collect();
+
+        let batch =
+            CandidateBatch {
+                positions,
+            };
+
+        candidate_tx
+            .send(batch)
+            .expect(
+                "failed to send candidate batch"
+            );
 
         // NOTE:
         // selected dropped here

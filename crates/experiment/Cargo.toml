@@ -9,3 +9,4 @@ pipeline = { path = "../pipeline" }
 trace = { path = "../trace" }  
 
 crossbeam = "0.8"
+shakmaty = "0.26"

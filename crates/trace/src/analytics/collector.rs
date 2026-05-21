@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::event::TraceEvent;
-use pipeline::filter::FilterReason;
+use pipeline::candidate::filter::FilterReason;
 
 pub struct TraceAnalytics {
 
