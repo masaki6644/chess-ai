@@ -1,3 +1,5 @@
+// apps/rust/run_experiment/src/runtime/label_workers.rs
+
 use std::thread;
 use std::thread::JoinHandle;
 
@@ -6,12 +8,16 @@ use crossbeam::channel::{
     Sender,
 };
 
+use experiment::label_runner;
+
 use pipeline::labeling::worker::Labeler;
 
 use pipeline::types::{
     CandidateBatch,
     LabeledBatch,
 };
+
+use trace::event::TraceEvent;
 
 pub fn spawn_label_workers<F, L>(
 
@@ -23,6 +29,9 @@ pub fn spawn_label_workers<F, L>(
     labeled_tx:
         Sender<LabeledBatch<F>>,
 
+    trace_tx:
+        Sender<TraceEvent>,
+
     labeler: L,
 )
 -> Vec<JoinHandle<()>>
@@ -33,12 +42,14 @@ where
 
     L:
         Labeler<F>
-        + Clone,
+        + Clone
+        + Send
+        + 'static,
 {
     let mut handles =
         Vec::new();
 
-    for _ in 0..num_workers {
+    for worker_id in 0..num_workers {
 
         let candidate_rx =
             candidate_rx.clone();
@@ -46,23 +57,28 @@ where
         let labeled_tx =
             labeled_tx.clone();
 
+        let trace_tx =
+            trace_tx.clone();
+
         let labeler =
             labeler.clone();
 
         let handle =
             thread::spawn(move || {
 
-            for batch
-                in candidate_rx
-            {
-                let labeled =
-                    labeler.label(batch);
+                label_runner::run(
 
-                labeled_tx
-                    .send(labeled)
-                    .unwrap();
-            }
-        });
+                    worker_id,
+
+                    candidate_rx,
+
+                    labeled_tx,
+
+                    trace_tx,
+
+                    labeler,
+                );
+            });
 
         handles.push(handle);
     }

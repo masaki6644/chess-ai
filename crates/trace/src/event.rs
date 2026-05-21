@@ -2,6 +2,23 @@ use crate::meta::GameMeta;
 use pipeline::candidate::filter::FilterReason;
 
 #[derive(Debug, Clone)]
+pub enum WorkerKind {
+    Parse,
+    Label,
+    Writer,
+}
+
+#[derive(Debug, Clone)]
+pub enum WorkerStatus {
+
+    Idle,
+
+    Working {
+        task: String,
+    },
+}
+
+#[derive(Debug, Clone)]
 pub enum TraceEvent {
     // =========================
     // game lifecycle
@@ -38,7 +55,39 @@ pub enum TraceEvent {
     },
 
     // =========================
-    // worker/file
+    // queue
+    // =========================
+    CandidateQueue {
+        current: usize,
+        max: usize,
+    },
+
+    LabeledQueue {
+        current: usize,
+        max: usize,
+    },
+
+    // =========================
+    // writer
+    // =========================
+    Written {
+        games: usize,
+    },
+
+    // =========================
+    // workers
+    // =========================
+    WorkerStateUpdated {
+
+        kind: WorkerKind,
+
+        worker_id: usize,
+
+        status: WorkerStatus,
+    },
+
+    // =========================
+    // parser/file
     // =========================
     FileStarted {
         worker_id: usize,

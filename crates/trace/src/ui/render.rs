@@ -12,92 +12,218 @@ use ratatui::{
     },
 };
 
-use crate::ui::app::AppState;
+use crate::event::WorkerStatus;
+
+use crate::ui::app::{
+    AppState,
+    WorkerState,
+};
+
+fn render_workers(
+    prefix: &str,
+    workers: &[WorkerState],
+) -> String {
+
+    workers
+        .iter()
+        .enumerate()
+        .map(|(i, w)| {
+
+            let text =
+                match &w.status {
+
+                    WorkerStatus::Idle => {
+                        "idle".to_string()
+                    }
+
+                    WorkerStatus::Working {
+                        task,
+                    } => {
+                        task.clone()
+                    }
+                };
+
+            format!(
+                "{}{:02}: {}",
+                prefix,
+                i,
+                text,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
 
 pub fn render(
     frame: &mut Frame,
     state: &AppState,
 ) {
+
+    let parser_height =
+        state.parse_workers.len() as u16 + 2;
+
+    let label_height =
+        state.label_workers.len() as u16 + 2;
+
+    let writer_height =
+        state.writer_workers.len() as u16 + 3;
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
-            Constraint::Min(5),
-            Constraint::Length(3),
+
+            Constraint::Length(4), // overall
+            Constraint::Length(4), // queues
+
+            Constraint::Length(
+                parser_height,
+            ),
+
+            Constraint::Length(
+                label_height,
+            ),
+
+            Constraint::Length(
+                writer_height,
+            ),
+
+            Constraint::Length(4), // errors
+
         ])
         .split(frame.area());
 
-    // progress
-    let progress = Paragraph::new(format!(
-        "Progress: {} / {}",
+    // =========================
+    // overall
+    // =========================
+    let overall = Paragraph::new(format!(
+        "Files : {} / {}\n\
+         Games : {}",
+
         state.completed_files,
         state.total_files,
+
+        state.games_seen,
     ))
     .block(
         Block::default()
-            .title("Progress")
+            .title("Overall")
             .borders(Borders::ALL),
     );
 
     frame.render_widget(
-        progress,
+        overall,
         chunks[0],
     );
 
-    // workers
-    let workers = state
-        .workers
-        .iter()
-        .enumerate()
-        .map(|(i, w)| {
-            match &w.current_file {
+    // =========================
+    // queues
+    // =========================
+    let queues = Paragraph::new(format!(
+        "Candidate : {} / {}\n\
+         Labeled   : {} / {}",
 
-                Some(path) => {
-                    format!(
-                        "Runner{}: {}",
-                        i,
-                        path,
-                    )
-                }
+        state.candidate_queue.current,
+        state.candidate_queue.max,
 
-                None => {
-                    format!(
-                        "Runner{}: idle",
-                        i,
-                    )
-                }
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
+        state.labeled_queue.current,
+        state.labeled_queue.max,
+    ))
+    .block(
+        Block::default()
+            .title("Queues")
+            .borders(Borders::ALL),
+    );
 
-    let workers_widget =
-        Paragraph::new(workers)
+    frame.render_widget(
+        queues,
+        chunks[1],
+    );
+
+    // =========================
+    // parser
+    // =========================
+    let parser = render_workers(
+        "Parse",
+        &state.parse_workers,
+    );
+
+    let parser_widget =
+        Paragraph::new(parser)
         .block(
             Block::default()
-                .title("Workers")
+                .title("Parser")
                 .borders(Borders::ALL),
         );
 
     frame.render_widget(
-        workers_widget,
-        chunks[1],
+        parser_widget,
+        chunks[2],
     );
 
-    // stats
-    let stats = Paragraph::new(format!(
-        "games: {}\nerrors: {}",
-        state.games_seen,
+    // =========================
+    // label
+    // =========================
+    let label = render_workers(
+        "Label",
+        &state.label_workers,
+    );
+
+    let label_widget =
+        Paragraph::new(label)
+        .block(
+            Block::default()
+                .title("Label")
+                .borders(Borders::ALL),
+        );
+
+    frame.render_widget(
+        label_widget,
+        chunks[3],
+    );
+
+    // =========================
+    // writer
+    // =========================
+    let writer = format!(
+        "{}\n\
+         Written : {} games",
+
+        render_workers(
+            "Writer",
+            &state.writer_workers,
+        ),
+
+        state.written_games,
+    );
+
+    let writer_widget =
+        Paragraph::new(writer)
+        .block(
+            Block::default()
+                .title("Writer")
+                .borders(Borders::ALL),
+        );
+
+    frame.render_widget(
+        writer_widget,
+        chunks[4],
+    );
+
+    // =========================
+    // errors
+    // =========================
+    let errors = Paragraph::new(format!(
+        "errors : {}",
         state.errors,
     ))
     .block(
         Block::default()
-            .title("Stats")
+            .title("Errors")
             .borders(Borders::ALL),
     );
 
     frame.render_widget(
-        stats,
-        chunks[2],
+        errors,
+        chunks[5],
     );
 }

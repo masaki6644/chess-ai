@@ -27,8 +27,12 @@ use crate::ui::render::render;
 
 pub fn run_ui_loop(
     rx: Receiver<TraceEvent>,
+
     total_files: usize,
-    num_workers: usize,
+
+    num_parse_workers: usize,
+
+    num_label_workers: usize,
 ) {
 
     // =========================
@@ -40,16 +44,19 @@ pub fn run_ui_loop(
     // =========================
     // terminal init
     // =========================
-    enable_raw_mode().unwrap();
+    enable_raw_mode()
+        .unwrap();
 
     execute!(
         stdout,
-        EnterAlternateScreen
+        EnterAlternateScreen,
     )
     .unwrap();
 
     let backend =
-        CrosstermBackend::new(stdout);
+        CrosstermBackend::new(
+            stdout,
+        );
 
     let mut terminal =
         Terminal::new(backend)
@@ -60,9 +67,27 @@ pub fn run_ui_loop(
     // =========================
     let mut state =
         AppState::new(
+
             total_files,
-            num_workers,
+
+            num_parse_workers,
+
+            num_label_workers,
         );
+
+    // =========================
+    // initial draw
+    // =========================
+    terminal
+        .draw(|frame| {
+            render(
+                frame,
+                &state,
+            );
+        })
+        .unwrap();
+
+    state.dirty = false;
 
     // =========================
     // loop
@@ -73,10 +98,16 @@ pub fn run_ui_loop(
             Duration::from_millis(16),
         ) {
 
+            // =========================
+            // received event
+            // =========================
             Ok(event) => {
 
                 state.ingest(event);
 
+                // =========================
+                // drain burst
+                // =========================
                 while let Ok(event) =
                     rx.try_recv()
                 {
@@ -84,10 +115,16 @@ pub fn run_ui_loop(
                 }
             }
 
+            // =========================
+            // periodic wakeup
+            // =========================
             Err(
                 RecvTimeoutError::Timeout
             ) => {}
 
+            // =========================
+            // shutdown
+            // =========================
             Err(
                 RecvTimeoutError::Disconnected
             ) => {
@@ -95,21 +132,35 @@ pub fn run_ui_loop(
             }
         }
 
-        terminal
-            .draw(|frame| {
-                render(frame, &state);
-            })
-            .unwrap();
+        // =========================
+        // redraw only if dirty
+        // =========================
+        if state.dirty {
+
+            terminal
+                .draw(|frame| {
+
+                    render(
+                        frame,
+                        &state,
+                    );
+
+                })
+                .unwrap();
+
+            state.dirty = false;
+        }
     }
 
     // =========================
     // restore terminal
     // =========================
-    disable_raw_mode().unwrap();
+    disable_raw_mode()
+        .unwrap();
 
     execute!(
         terminal.backend_mut(),
-        LeaveAlternateScreen
+        LeaveAlternateScreen,
     )
     .unwrap();
 

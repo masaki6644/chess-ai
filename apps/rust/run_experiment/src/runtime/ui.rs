@@ -12,16 +12,23 @@ pub fn spawn_ui(
 
     total_files: usize,
 
-    workers: usize,
+    parse_workers: usize,
+
+    label_workers: usize,
 )
 -> JoinHandle<()>
 {
     thread::spawn(move || {
 
         trace::ui::ui_loop::run_ui_loop(
+
             ui_rx,
+
             total_files,
-            workers,
+
+            parse_workers,
+
+            label_workers,
         );
     })
 }

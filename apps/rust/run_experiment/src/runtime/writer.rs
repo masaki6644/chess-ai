@@ -1,14 +1,26 @@
+// apps/rust/run_experiment/src/runtime/writer.rs
+
 use std::thread;
 use std::thread::JoinHandle;
 
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{
+    Receiver,
+    Sender,
+};
+
+use experiment::writer_runner;
 
 use pipeline::types::LabeledBatch;
+
+use trace::event::TraceEvent;
 
 pub fn spawn_writer<F>(
 
     labeled_rx:
         Receiver<LabeledBatch<F>>,
+
+    trace_tx:
+        Sender<TraceEvent>,
 )
 -> JoinHandle<()>
 where
@@ -18,16 +30,11 @@ where
 {
     thread::spawn(move || {
 
-        let mut total =
-            0usize;
+        writer_runner::run(
 
-        for batch
-            in labeled_rx
-        {
-            total +=
-                batch.positions.len();
+            labeled_rx,
 
-
-        }
+            trace_tx,
+        );
     })
 }

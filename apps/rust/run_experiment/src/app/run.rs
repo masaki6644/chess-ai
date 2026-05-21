@@ -132,6 +132,7 @@ pub fn run_app() {
             ui_rx,
             total_files,
             app_config.parse_workers,
+            app_config.label_workers
         );
 
     let analytics_handle =
@@ -152,6 +153,8 @@ pub fn run_app() {
                 .labeled_tx
                 .clone(),
 
+            tx.clone(),
+
             DummyLabeler,
         );
 
@@ -160,6 +163,8 @@ pub fn run_app() {
             queues
                 .labeled_rx
                 .clone(),
+
+            tx.clone()
         );
 
     // =========================
