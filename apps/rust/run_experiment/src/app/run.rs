@@ -17,10 +17,13 @@ use pipeline::candidate::filter::{
 use pipeline::candidate::score::QuickScorer;
 use pipeline::candidate::select::SoftSelector;
 
-use pipeline::labeling::dummy::DummyLabeler;
+use pipeline::labeling::mcts_factory::MctsLabelerFactory;
+use pipeline::labeling::dummy_factory::DummyLabelerFactory;
 
 use trace::analytics::summary::SummaryPrinter;
 use trace::event::TraceEvent;
+
+use engine::stockfish::config::StockfishConfig;
 
 use crate::app::config::AppConfig;
 
@@ -154,8 +157,8 @@ pub fn run_app() {
                 .clone(),
 
             tx.clone(),
-
-            DummyLabeler,
+            
+            DummyLabelerFactory,
         );
 
     let writer_handle =

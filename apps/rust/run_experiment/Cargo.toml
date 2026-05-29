@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 experiment = { path = "../../../crates/experiment" }
 pipeline   = { path = "../../../crates/pipeline" } 
+engine = { path = "../../../crates/engine"}
 trace = { path = "../../../crates/trace" }  
 
 crossbeam = "0.8"

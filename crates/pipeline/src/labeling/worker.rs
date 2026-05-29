@@ -12,10 +12,10 @@ use crate::types::{
 // Labeler trait
 // =========================
 pub trait Labeler<F>:
-    Send + Sync + 'static
+    Send + 'static
 {
     fn label(
-        &self,
+        &mut self,
         batch: CandidateBatch<F>,
     ) -> LabeledBatch<F>;
 }
@@ -31,7 +31,7 @@ pub fn run_labeling_worker<F, L>(
     labeled_tx:
         Sender<LabeledBatch<F>>,
 
-    labeler: L,
+    mut labeler: L,
 )
 where
     F: Send + 'static,

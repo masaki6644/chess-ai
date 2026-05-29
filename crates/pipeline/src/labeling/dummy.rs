@@ -17,7 +17,7 @@ where
     F: Clone,
 {
     fn label(
-        &self,
+        &mut self,
         batch: CandidateBatch<F>,
     ) -> LabeledBatch<F> {
 

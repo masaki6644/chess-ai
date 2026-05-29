@@ -37,6 +37,8 @@ pub struct PolicyTarget {
 
     pub mv: String,
 
+    pub visits: u32,
+
     pub prob: f32,
 }
 

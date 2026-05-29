@@ -31,7 +31,7 @@ pub fn run<F, L>(
     trace_tx:
         Sender<TraceEvent>,
 
-    labeler: L,
+    mut labeler: L,
 )
 where
     F:
