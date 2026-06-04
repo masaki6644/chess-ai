@@ -263,6 +263,14 @@ where
 
         // NOTE:
         // selected dropped here
+
+
+        sender
+            .send(TraceEvent::CandidateQueue {
+                current: candidate_tx.len(),
+                max: candidate_tx.capacity().unwrap_or(0),
+            })
+            .ok();
     });
 
     // =========================
@@ -274,4 +282,5 @@ where
             file_id,
         })
         .expect("trace send failed");
+
 }

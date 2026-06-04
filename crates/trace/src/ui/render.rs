@@ -66,14 +66,14 @@ pub fn render(
         state.label_workers.len() as u16 + 2;
 
     let writer_height =
-        state.writer_workers.len() as u16 + 3;
+        state.writer_workers.len() as u16 + 4;
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
 
             Constraint::Length(4), // overall
-            Constraint::Length(4), // queues
+            Constraint::Length(6), // queues
 
             Constraint::Length(
                 parser_height,
@@ -120,13 +120,19 @@ pub fn render(
     // =========================
     let queues = Paragraph::new(format!(
         "Candidate : {} / {}\n\
-         Labeled   : {} / {}",
+         Avg Util  : {:.1}%\n\
+         Labeled   : {} / {}\n\
+         Avg Util  : {:.1}%",
 
         state.candidate_queue.current,
         state.candidate_queue.max,
 
+        state.candidate_util_avg * 100.0,
+
         state.labeled_queue.current,
         state.labeled_queue.max,
+
+        state.labeled_util_avg * 100.0,
     ))
     .block(
         Block::default()
@@ -186,14 +192,17 @@ pub fn render(
     // =========================
     let writer = format!(
         "{}\n\
-         Written : {} games",
-
+         Written : {} games\n\
+         Rate    : {:.1} games/s",
+        
         render_workers(
             "Writer",
             &state.writer_workers,
         ),
 
         state.written_games,
+
+        state.write_rate,
     );
 
     let writer_widget =

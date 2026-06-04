@@ -17,13 +17,10 @@ use pipeline::candidate::filter::{
 use pipeline::candidate::score::QuickScorer;
 use pipeline::candidate::select::SoftSelector;
 
-use pipeline::labeling::mcts_factory::MctsLabelerFactory;
 use pipeline::labeling::dummy_factory::DummyLabelerFactory;
 
 use trace::analytics::summary::SummaryPrinter;
 use trace::event::TraceEvent;
-
-use engine::stockfish::config::StockfishConfig;
 
 use crate::app::config::AppConfig;
 
@@ -67,12 +64,9 @@ pub fn run_app() {
 
         filter: Arc::new(
             StrongGameFilter {
-                config:
-                    StrongGameFilterConfig {
-
+                config: StrongGameFilterConfig {
                     min_len: 15,
                     max_len: 120,
-
                     min_elo: 1300,
                     max_elo: 2400,
                 },
@@ -95,15 +89,10 @@ pub fn run_app() {
     };
 
     // =========================
-    // trace channels
+    // trace channels（UI削除済み）
     // =========================
     let (tx, rx) =
         channel::unbounded::<TraceEvent>();
-
-    let (ui_tx, ui_rx) =
-        channel::bounded::<TraceEvent>(
-            1024,
-        );
 
     let (ana_tx, ana_rx) =
         channel::unbounded::<TraceEvent>();
@@ -113,12 +102,22 @@ pub fn run_app() {
     // =========================
     let queues =
         PipelineQueues::<SimpleFeatures>::new(
-            app_config
-                .candidate_queue_size,
-
-            app_config
-            .labeled_queue_size,
+            app_config.candidate_queue_size,
+            app_config.labeled_queue_size,
         );
+
+    tx.send(
+        TraceEvent::Init {
+            total_files,
+
+            num_parse_workers:
+                app_config.parse_workers,
+
+            num_label_workers:
+                app_config.label_workers,
+        }
+    )
+    .unwrap();
 
     // =========================
     // runtime
@@ -126,57 +125,33 @@ pub fn run_app() {
     let bus_handle =
         spawn_trace_bus(
             rx,
-            ui_tx,
             ana_tx,
         );
-
-    let ui_handle =
-        spawn_ui(
-            ui_rx,
-            total_files,
-            app_config.parse_workers,
-            app_config.label_workers
-        );
+    
 
     let analytics_handle =
-        spawn_analytics(
-            ana_rx,
-        );
+        spawn_analytics(ana_rx);
 
     let labeler_handles =
         spawn_label_workers(
-
             app_config.label_workers,
-
-            queues
-                .candidate_rx
-                .clone(),
-
-            queues
-                .labeled_tx
-                .clone(),
-
+            queues.candidate_rx.clone(),
+            queues.labeled_tx.clone(),
             tx.clone(),
-            
             DummyLabelerFactory,
         );
 
     let writer_handle =
         spawn_writer(
-            queues
-                .labeled_rx
-                .clone(),
-
-            tx.clone()
+            queues.labeled_rx.clone(),
+            tx.clone(),
         );
 
     // =========================
     // jobs
     // =========================
-    let (
-        job_tx,
-        job_rx,
-    ) = channel::unbounded();
+    let (job_tx, job_rx) =
+        channel::unbounded();
 
     enqueue_pgn_jobs(
         &files,
@@ -190,19 +165,11 @@ pub fn run_app() {
     // =========================
     let parse_handles =
         spawn_parse_workers(
-
-            app_config
-                .parse_workers,
-
+            app_config.parse_workers,
             job_rx,
-
             config,
-
             tx.clone(),
-
-            queues
-                .candidate_tx
-                .clone(),
+            queues.candidate_tx.clone(),
         );
 
     // =========================
@@ -210,15 +177,8 @@ pub fn run_app() {
     // =========================
     drop(tx);
 
-    drop(
-        queues
-            .candidate_tx
-    );
-
-    drop(
-        queues
-            .labeled_tx
-    );
+    drop(queues.candidate_tx);
+    drop(queues.labeled_tx);
 
     for h in parse_handles {
         h.join().unwrap();
@@ -228,24 +188,11 @@ pub fn run_app() {
         h.join().unwrap();
     }
 
-    writer_handle
-        .join()
-        .unwrap();
-
-    bus_handle
-        .join()
-        .unwrap();
-
-    ui_handle
-        .join()
-        .unwrap();
+    writer_handle.join().unwrap();
+    bus_handle.join().unwrap();
 
     let analytics =
-        analytics_handle
-            .join()
-            .unwrap();
+        analytics_handle.join().unwrap();
 
-    SummaryPrinter::print(
-        &analytics,
-    );
+    SummaryPrinter::print(&analytics);
 }

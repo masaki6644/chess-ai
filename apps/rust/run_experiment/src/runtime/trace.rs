@@ -14,9 +14,6 @@ pub fn spawn_trace_bus(
     rx:
         Receiver<TraceEvent>,
 
-    ui_tx:
-        Sender<TraceEvent>,
-
     ana_tx:
         Sender<TraceEvent>,
 )
@@ -27,7 +24,6 @@ pub fn spawn_trace_bus(
         let bus =
             TraceBus::new(
                 rx,
-                ui_tx,
                 ana_tx,
             );
 

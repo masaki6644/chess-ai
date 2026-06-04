@@ -1,9 +1,23 @@
 use core::Game;
 
+use serde::{
+    Serialize,
+    Deserialize,
+};
+
 // =========================
 // 理由（観測用）
 // =========================
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+)]
 pub enum FilterReason {
     TooShort,
     TooLong,

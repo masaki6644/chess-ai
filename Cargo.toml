@@ -11,4 +11,5 @@ members = [
     "crates/chess_tt",
     "crates/engine",
     "apps/rust/run_experiment",
+    "apps/rust/monitor",
 ]

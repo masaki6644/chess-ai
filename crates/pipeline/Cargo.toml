@@ -10,3 +10,4 @@ search = { path = "../search"}
 shakmaty = "0.26"
 rand = "0.8"
 crossbeam = "0.8"
+serde = { version = "1", features = ["derive"] }

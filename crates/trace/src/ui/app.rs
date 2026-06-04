@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::event::{
     TraceEvent,
     WorkerKind,
@@ -11,7 +13,6 @@ pub struct AppState {
     // =========================
     pub total_files: usize,
     pub completed_files: usize,
-
     pub games_seen: usize,
 
     // =========================
@@ -27,8 +28,21 @@ pub struct AppState {
     pub candidate_queue: QueueState,
     pub labeled_queue: QueueState,
 
+    pub candidate_util_avg: f64,
+    pub labeled_util_avg: f64,
 
+    pub candidate_samples: usize,
+    pub labeled_samples: usize,
+
+    // =========================
+    // writer
+    // =========================
     pub written_games: usize,
+
+    pub write_rate: f64,
+    pub last_written_games: usize,
+
+    pub last_rate_update: Instant,
 
     // =========================
     // errors
@@ -62,7 +76,6 @@ impl AppState {
 
             total_files,
             completed_files: 0,
-
             games_seen: 0,
 
             parse_workers:
@@ -96,7 +109,18 @@ impl AppState {
                 max: 0,
             },
 
+            candidate_util_avg: 0.0,
+            labeled_util_avg: 0.0,
+
+            candidate_samples: 0,
+            labeled_samples: 0,
+
             written_games: 0,
+
+            write_rate: 0.0,
+            last_written_games: 0,
+
+            last_rate_update: Instant::now(),
 
             errors: 0,
 
@@ -112,7 +136,7 @@ impl AppState {
         match event {
 
             // =========================
-            // parser files
+            // parser
             // =========================
             TraceEvent::FileStarted {
                 worker_id,
@@ -120,11 +144,14 @@ impl AppState {
                 ..
             } => {
 
-                self.parse_workers[worker_id]
-                    .status =
-                    WorkerStatus::Working {
-                        task: path,
-                    };
+                if let Some(worker) =
+                    self.parse_workers.get_mut(worker_id)
+                {
+                    worker.status =
+                        WorkerStatus::Working {
+                            task: path,
+                        };
+                }
             }
 
             TraceEvent::FileFinished {
@@ -134,13 +161,16 @@ impl AppState {
 
                 self.completed_files += 1;
 
-                self.parse_workers[worker_id]
-                    .status =
-                    WorkerStatus::Idle;
+                if let Some(worker) =
+                    self.parse_workers.get_mut(worker_id)
+                {
+                    worker.status =
+                        WorkerStatus::Idle;
+                }
             }
 
             // =========================
-            // worker state
+            // workers
             // =========================
             TraceEvent::WorkerStateUpdated {
 
@@ -163,12 +193,16 @@ impl AppState {
                             &mut self.writer_workers,
                     };
 
-                workers[worker_id]
-                    .status = status;
+                if let Some(worker) =
+                    workers.get_mut(worker_id)
+                {
+                    worker.status =
+                        status;
+                }
             }
 
             // =========================
-            // queues
+            // candidate queue
             // =========================
             TraceEvent::CandidateQueue {
                 current,
@@ -180,8 +214,31 @@ impl AppState {
 
                 self.candidate_queue.max =
                     max;
+
+                if max > 0 {
+
+                    let util =
+                        current as f64
+                        / max as f64;
+
+                    self.candidate_util_avg =
+                        (
+                            self.candidate_util_avg
+                            * self.candidate_samples as f64
+                            + util
+                        )
+                        /
+                        (
+                            self.candidate_samples + 1
+                        ) as f64;
+
+                    self.candidate_samples += 1;
+                }
             }
 
+            // =========================
+            // labeled queue
+            // =========================
             TraceEvent::LabeledQueue {
                 current,
                 max,
@@ -192,14 +249,64 @@ impl AppState {
 
                 self.labeled_queue.max =
                     max;
+
+                if max > 0 {
+
+                    let util =
+                        current as f64
+                        / max as f64;
+
+                    self.labeled_util_avg =
+                        (
+                            self.labeled_util_avg
+                            * self.labeled_samples as f64
+                            + util
+                        )
+                        /
+                        (
+                            self.labeled_samples + 1
+                        ) as f64;
+
+                    self.labeled_samples += 1;
+                }
             }
 
+            // =========================
+            // writer
+            // =========================
             TraceEvent::Written {
                 games,
             } => {
 
+                let now =
+                    Instant::now();
+
+                let elapsed =
+                    now.duration_since(
+                        self.last_rate_update,
+                    );
+
                 self.written_games =
                     games;
+
+                if elapsed.as_secs_f64() >= 5.0 {
+
+                    let diff =
+                        self.written_games
+                            .saturating_sub(
+                                self.last_written_games,
+                            );
+
+                    self.write_rate =
+                        diff as f64
+                        / elapsed.as_secs_f64();
+
+                    self.last_written_games =
+                        self.written_games;
+
+                    self.last_rate_update =
+                        now;
+                }
             }
 
             // =========================

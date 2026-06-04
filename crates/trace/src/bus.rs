@@ -1,3 +1,6 @@
+use std::io::Write;
+use std::net::TcpStream;
+
 use crossbeam_channel::{
     Receiver,
     Sender,
@@ -7,50 +10,84 @@ use crate::event::TraceEvent;
 
 /// TraceBus = single consumer dispatcher thread
 pub struct TraceBus {
+
     rx: Receiver<TraceEvent>,
 
     // =========================
     // consumers
     // =========================
-    ui_tx: Sender<TraceEvent>,
+    monitor_stream: Option<TcpStream>,
+
     analytics_tx: Sender<TraceEvent>,
 }
 
 impl TraceBus {
 
     pub fn new(
+
         rx: Receiver<TraceEvent>,
 
-        ui_tx: Sender<TraceEvent>,
         analytics_tx: Sender<TraceEvent>,
     ) -> Self {
 
+        // =========================
+        // monitor connection
+        // =========================
+        let monitor_stream =
+            TcpStream::connect(
+                "127.0.0.1:7000",
+            )
+            .ok();
+
         Self {
+
             rx,
 
-            ui_tx,
+            monitor_stream,
+
             analytics_tx,
         }
     }
 
-    pub fn run(self) {
+    pub fn run(mut self) {
 
         for event in self.rx {
 
             // =========================
-            // UI（drop許容）
+            // monitor
             // =========================
-            let _ =
-                self.ui_tx.try_send(event.clone());
+            if let Some(stream) =
+                self.monitor_stream.as_mut()
+            {
+
+                let json =
+                    serde_json::to_string(
+                        &event
+                    )
+                    .unwrap();
+
+                // monitor落ちても
+                // experimentは止めない
+                if writeln!(
+                    stream,
+                    "{}",
+                    json,
+                )
+                .is_err()
+                {
+                    self.monitor_stream =
+                        None;
+                }
+            }
 
             // =========================
-            // Analytics（安定処理）
+            // Analytics
             // =========================
             let _ =
-                self.analytics_tx.send(event);
+                self.analytics_tx
+                    .send(event);
         }
 
-        drop(self.ui_tx);
         drop(self.analytics_tx);
     }
 }

@@ -28,14 +28,18 @@ impl AppConfig {
                 .map(|n| n.get())
                 .unwrap_or(4);
 
+        let label_workers =
+            (base / 3).max(2);
+
+        let parse_workers =
+            (base - label_workers - 1)
+                .max(1);
+
         Self {
 
-            parse_workers:
-                base
-                    .saturating_sub(4)
-                    .max(1),
+            parse_workers,
 
-            label_workers: 2,
+            label_workers,
 
             candidate_queue_size: 1024,
 

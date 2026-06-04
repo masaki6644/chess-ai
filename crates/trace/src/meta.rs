@@ -1,4 +1,15 @@
-#[derive(Debug, Clone)]
+use serde::{
+    Serialize,
+    Deserialize,
+};
+
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+)]
+
 pub struct GameMeta {
     pub game_id: u64,
     pub moves: usize,

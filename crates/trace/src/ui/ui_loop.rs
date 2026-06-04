@@ -1,9 +1,9 @@
-use std::time::Duration;
-
-use crossbeam_channel::{
-    Receiver,
-    RecvTimeoutError,
+use std::io::{
+    BufRead,
+    BufReader,
 };
+
+use std::net::TcpStream;
 
 use crossterm::{
     execute,
@@ -26,24 +26,19 @@ use crate::ui::app::AppState;
 use crate::ui::render::render;
 
 pub fn run_ui_loop(
-    rx: Receiver<TraceEvent>,
 
-    total_files: usize,
+    stream: TcpStream,
 
-    num_parse_workers: usize,
+    _total_files: usize,
 
-    num_label_workers: usize,
+    _num_parse_workers: usize,
+
+    _num_label_workers: usize,
 ) {
 
-    // =========================
-    // stdout
-    // =========================
     let mut stdout =
         std::io::stdout();
 
-    // =========================
-    // terminal init
-    // =========================
     enable_raw_mode()
         .unwrap();
 
@@ -62,79 +57,80 @@ pub fn run_ui_loop(
         Terminal::new(backend)
             .unwrap();
 
-    // =========================
-    // state
-    // =========================
+    // 仮state
     let mut state =
         AppState::new(
-
-            total_files,
-
-            num_parse_workers,
-
-            num_label_workers,
+            0,
+            0,
+            0,
         );
 
-    // =========================
-    // initial draw
-    // =========================
     terminal
         .draw(|frame| {
+
             render(
                 frame,
                 &state,
             );
+
         })
         .unwrap();
 
     state.dirty = false;
 
-    // =========================
-    // loop
-    // =========================
-    loop {
+    let reader =
+        BufReader::new(stream);
 
-        match rx.recv_timeout(
-            Duration::from_millis(16),
-        ) {
+    for line in reader.lines() {
 
-            // =========================
-            // received event
-            // =========================
-            Ok(event) => {
+        let line =
+            match line {
 
-                state.ingest(event);
+                Ok(line) => line,
 
-                // =========================
-                // drain burst
-                // =========================
-                while let Ok(event) =
-                    rx.try_recv()
-                {
-                    state.ingest(event);
-                }
+                Err(_) => break,
+            };
+
+        let event: TraceEvent =
+            match serde_json::from_str(
+                &line,
+            ) {
+
+                Ok(event) => event,
+
+                Err(_) => continue,
+            };
+
+        match event {
+
+            TraceEvent::Init {
+
+                total_files,
+
+                num_parse_workers,
+
+                num_label_workers,
+            } => {
+
+                state =
+                    AppState::new(
+
+                        total_files,
+
+                        num_parse_workers,
+
+                        num_label_workers,
+                    );
+
+                state.dirty = true;
             }
 
-            // =========================
-            // periodic wakeup
-            // =========================
-            Err(
-                RecvTimeoutError::Timeout
-            ) => {}
+            _ => {
 
-            // =========================
-            // shutdown
-            // =========================
-            Err(
-                RecvTimeoutError::Disconnected
-            ) => {
-                break;
+                state.ingest(event);
             }
         }
 
-        // =========================
-        // redraw only if dirty
-        // =========================
         if state.dirty {
 
             terminal
@@ -152,9 +148,6 @@ pub fn run_ui_loop(
         }
     }
 
-    // =========================
-    // restore terminal
-    // =========================
     disable_raw_mode()
         .unwrap();
 

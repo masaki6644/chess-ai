@@ -1,14 +1,29 @@
+use serde::{
+    Deserialize,
+    Serialize,
+};
+
 use crate::meta::GameMeta;
 use pipeline::candidate::filter::FilterReason;
 
-#[derive(Debug, Clone)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+)]
 pub enum WorkerKind {
     Parse,
     Label,
     Writer,
 }
 
-#[derive(Debug, Clone)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+)]
 pub enum WorkerStatus {
 
     Idle,
@@ -18,12 +33,31 @@ pub enum WorkerStatus {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+)]
 pub enum TraceEvent {
+
+    // =========================
+    // init
+    // =========================
+    Init {
+
+        total_files: usize,
+
+        num_parse_workers: usize,
+
+        num_label_workers: usize,
+    },
+
     // =========================
     // game lifecycle
     // =========================
     GameSeen,
+
     GameAccepted,
 
     GameFiltered {
@@ -38,11 +72,13 @@ pub enum TraceEvent {
         count: usize,
         total_plies: usize,
     },
-    Scored { 
+
+    Scored {
         count: usize,
         scores: Vec<f32>,
     },
-    Selected { 
+
+    Selected {
         count: usize,
         scores: Vec<f32>,
     },
@@ -51,7 +87,7 @@ pub enum TraceEvent {
     // error
     // =========================
     Error {
-        stage: &'static str,
+        stage: String,
     },
 
     // =========================
