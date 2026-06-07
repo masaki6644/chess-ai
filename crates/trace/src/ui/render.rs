@@ -73,7 +73,8 @@ pub fn render(
         .constraints([
 
             Constraint::Length(4), // overall
-            Constraint::Length(4), // queues
+            Constraint::Length(9), // queues
+            Constraint::Length(9), // throughput
 
             Constraint::Length(
                 parser_height,
@@ -118,15 +119,47 @@ pub fn render(
     // =========================
     // queues
     // =========================
+
+    let candidate_avg =
+        AppState::queue_avg(
+            &state.candidate_queue,
+        ) * 100.0;
+
+    let candidate_peak =
+        AppState::queue_peak(
+            &state.candidate_queue,
+        ) * 100.0;
+
+    let labeled_avg =
+        AppState::queue_avg(
+            &state.labeled_queue,
+        ) * 100.0;
+
+    let labeled_peak =
+        AppState::queue_peak(
+            &state.labeled_queue,
+        ) * 100.0;
+
     let queues = Paragraph::new(format!(
         "Candidate : {} / {}\n\
-         Labeled   : {} / {}",
+         Avg Util  : {:.1}%\n\
+         Peak Util : {:.1}%\n\
+         \n\
+         Labeled   : {} / {}\n\
+         Avg Util  : {:.1}%\n\
+         Peak Util : {:.1}%",
 
         state.candidate_queue.current,
         state.candidate_queue.max,
 
+        candidate_avg,
+        candidate_peak,
+
         state.labeled_queue.current,
         state.labeled_queue.max,
+
+        labeled_avg,
+        labeled_peak,
     ))
     .block(
         Block::default()
@@ -137,6 +170,56 @@ pub fn render(
     frame.render_widget(
         queues,
         chunks[1],
+    );
+
+    // =========================
+    // throughput
+    // =========================
+
+    let parse_rate =
+        AppState::throughput_per_sec(
+            &state.parse_throughput,
+        );
+
+    let label_rate =
+        AppState::throughput_per_sec(
+            &state.label_throughput,
+        );
+
+    let write_rate =
+        AppState::throughput_per_sec(
+            &state.write_throughput,
+        );
+
+    let throughput =
+        Paragraph::new(format!(
+            "Parse  : {} games\n\
+             Rate   : {:.1} games/s\n\
+             \n\
+             Label  : {} positions\n\
+             Rate   : {:.1} pos/s\n\
+             \n\
+             Write  : {} games\n\
+             Rate   : {:.1} games/s",
+
+            state.parse_throughput.total,
+            parse_rate,
+
+            state.label_throughput.total,
+            label_rate,
+
+            state.write_throughput.total,
+            write_rate,
+        ))
+        .block(
+            Block::default()
+                .title("Throughput")
+                .borders(Borders::ALL),
+        );
+
+    frame.render_widget(
+        throughput,
+        chunks[2],
     );
 
     // =========================
@@ -157,7 +240,7 @@ pub fn render(
 
     frame.render_widget(
         parser_widget,
-        chunks[2],
+        chunks[3],
     );
 
     // =========================
@@ -178,7 +261,7 @@ pub fn render(
 
     frame.render_widget(
         label_widget,
-        chunks[3],
+        chunks[4],
     );
 
     // =========================
@@ -206,7 +289,7 @@ pub fn render(
 
     frame.render_widget(
         writer_widget,
-        chunks[4],
+        chunks[5],
     );
 
     // =========================
@@ -224,6 +307,6 @@ pub fn render(
 
     frame.render_widget(
         errors,
-        chunks[5],
+        chunks[6],
     );
 }

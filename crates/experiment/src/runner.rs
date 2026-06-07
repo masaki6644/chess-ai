@@ -261,6 +261,21 @@ where
                 "failed to send candidate batch"
             );
 
+        sender
+            .send(
+                TraceEvent::CandidateQueue {
+
+                    current:
+                        candidate_tx.len(),
+
+                    max:
+                        candidate_tx
+                            .capacity()
+                            .unwrap_or(0),
+                }
+            )
+            .ok();
+
         // NOTE:
         // selected dropped here
     });

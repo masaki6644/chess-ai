@@ -159,6 +159,7 @@ pub fn run_app() {
             tx.clone(),
             
             DummyLabelerFactory,
+        
         );
 
     let writer_handle =
