@@ -22,7 +22,8 @@ use ratatui::{
 
 use crate::event::TraceEvent;
 
-use crate::ui::app::AppState;
+use crate::ui::state::AppState;
+
 use crate::ui::render::render;
 
 pub fn run_ui_loop(

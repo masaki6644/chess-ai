@@ -14,7 +14,7 @@ use ratatui::{
 
 use crate::event::WorkerStatus;
 
-use crate::ui::app::{
+use crate::ui::state::{
     AppState,
     WorkerState,
 };
@@ -121,24 +121,28 @@ pub fn render(
     // =========================
 
     let candidate_avg =
-        AppState::queue_avg(
-            &state.candidate_queue,
-        ) * 100.0;
+        state
+            .candidate_queue
+            .avg()
+            * 100.0;
 
     let candidate_peak =
-        AppState::queue_peak(
-            &state.candidate_queue,
-        ) * 100.0;
+        state
+            .candidate_queue
+            .peak()
+            * 100.0;
 
     let labeled_avg =
-        AppState::queue_avg(
-            &state.labeled_queue,
-        ) * 100.0;
+        state
+            .labeled_queue
+            .avg()
+            * 100.0;
 
     let labeled_peak =
-        AppState::queue_peak(
-            &state.labeled_queue,
-        ) * 100.0;
+        state
+            .labeled_queue
+            .peak()
+            * 100.0;
 
     let queues = Paragraph::new(format!(
         "Candidate : {} / {}\n\
@@ -177,19 +181,19 @@ pub fn render(
     // =========================
 
     let parse_rate =
-        AppState::throughput_per_sec(
-            &state.parse_throughput,
-        );
+        state
+            .parse_throughput
+            .per_sec();
 
     let label_rate =
-        AppState::throughput_per_sec(
-            &state.label_throughput,
-        );
+        state
+            .label_throughput
+            .per_sec();
 
     let write_rate =
-        AppState::throughput_per_sec(
-            &state.write_throughput,
-        );
+        state
+            .write_throughput
+            .per_sec();
 
     let throughput =
         Paragraph::new(format!(
